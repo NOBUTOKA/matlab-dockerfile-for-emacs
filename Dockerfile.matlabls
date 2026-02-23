@@ -1,3 +1,5 @@
+## -*- dockerfile-image-name: "matlab-for-lsp:R2023b" -*-
+
 # Copyright 2019-2025 The MathWorks, Inc.
 # This Dockerfile allows you to build a Docker® image with MATLAB® installed using the MATLAB Package
 # Manager. Use the optional build arguments to customize the version of MATLAB, list of products to
@@ -37,13 +39,29 @@ ARG MATLAB_PRODUCT_LIST
 ARG MATLAB_INSTALL_LOCATION
 ARG LICENSE_SERVER
 
+RUN apt-get update && apt-get install --no-install-recommends -y locales \
+ && locale-gen ja_JP.UTF-8
+ENV LANG=ja_JP.UTF-8
+ENV LC_ALL=ja_JP.UTF-8
+
 # Install mpm dependencies.
 RUN export DEBIAN_FRONTEND=noninteractive \
-    && apt-get update \
-    && apt-get install --no-install-recommends --yes \
-    wget \
-    ca-certificates \
-    && apt-get clean \
+    && apt-get install --no-install-recommends --yes wget ca-certificates
+
+# # Install node/npm(latest lts).
+RUN wget -qO- https://deb.nodesource.com/setup_lts.x | bash - \
+    && apt-get update && apt-get install -y --no-install-recommends nodejs git
+
+# # Install matlab-language-server
+RUN mkdir -p /usr/local/apps/ \
+    && cd /usr/local/apps/ \
+    && git clone https://github.com/NOBUTOKA/MATLAB-language-server.git matlabls \
+    && cd matlabls \
+    && npm run project-install && npm run compile \
+    && cd ~
+
+# Cleanup apt
+RUN apt-get clean \
     && apt-get autoremove \
     && rm -rf /var/lib/apt/lists/*
 
@@ -76,7 +94,7 @@ RUN wget -q https://www.mathworks.com/mpm/glnxa64/mpm \
 # is the preferred option. You can either use a build variable, like this:
 # --build-arg LICENSE_SERVER=27000@MyServerName or you can specify the license server
 # directly using: ENV MLM_LICENSE_FILE=27000@flexlm-server-name
-ENV MLM_LICENSE_FILE=$LICENSE_SERVER
+# ENV MLM_LICENSE_FILE=$LICENSE_SERVER
 
 # Option 2. Alternatively, you can put a license file into the container.
 # Enter the details of the license server in this file and uncomment the following line.
@@ -88,7 +106,8 @@ ENV MLM_LICENSE_FILE=$LICENSE_SERVER
 # To opt out of this service, delete the environment variables defined in the following line.
 # To learn more, see the Help Make MATLAB Even Better section in the accompanying README:
 # https://github.com/mathworks-ref-arch/matlab-dockerfile#help-make-matlab-even-better
-ENV MW_DDUX_FORCE_ENABLE=true MW_CONTEXT_TAGS=MATLAB:DOCKERFILE:V1
+# ENV MW_DDUX_FORCE_ENABLE=true MW_CONTEXT_TAGS=MATLAB:DOCKERFILE:V1
 
-ENTRYPOINT ["matlab"]
-CMD [""]
+
+ENTRYPOINT ["node", "/usr/local/apps/matlabls/out/index.js", "--stdio"]
+CMD ["--matlabInstallPath", "/usr/local/bin/matlab", "--", "-licmode onlinelicensing -nodesktop"]
