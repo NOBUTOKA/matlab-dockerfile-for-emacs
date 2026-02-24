@@ -1,4 +1,4 @@
-## -*- dockerfile-image-name: "matlab-for-lsp:R2023b" -*-
+## -*- dockerfile-image-name: "matlab:R2023b-shell" -*-
 
 # Copyright 2019-2025 The MathWorks, Inc.
 # This Dockerfile allows you to build a Docker® image with MATLAB® installed using the MATLAB Package
@@ -39,8 +39,8 @@ ARG MATLAB_PRODUCT_LIST
 ARG MATLAB_INSTALL_LOCATION
 ARG LICENSE_SERVER
 
-RUN apt-get update && apt-get install --no-install-recommends -y locales fonts-takao fonts-noto-cjk fonts-noto-color-emoji \
- && locale-gen ja_JP.UTF-8
+RUN apt-get update && apt-get install -y language-pack-ja fonts-takao fonts-noto-cjk fonts-noto-color-emoji \
+    && update-locale LANG=ja_JP.UTF-8
 ENV LANG=ja_JP.UTF-8
 ENV LC_ALL=ja_JP.UTF-8
 
